@@ -66,6 +66,22 @@ window.CONTENT = {
     kicker: '第二站 · 甜蜜点滴',
     title: '我们一起走过的地方',
     items: [
+      // —— 旅行第一天：湘南海岸 & 江之岛 ——
+      { img: 'assets/photos/day1-coast.jpg', place: '湘南海岸', date: '旅行第一天',
+        text: '第一天就直奔湘南，海蓝得不像话，你比海还好看。' },
+      { img: 'assets/photos/day1-bridge.jpg', place: '湘南 · 小桥边', date: '旅行第一天',
+        text: '站在桥上看海的背影，是我那天最喜欢的风景。' },
+      { img: 'assets/photos/day1-enoshima-bridge.jpg', place: '江之岛', date: '旅行第一天',
+        text: '红色的栏杆、蓝色的海，还有走在前面的你。' },
+      { img: 'assets/photos/day1-enoshima-slope.jpg', place: '江之岛 · 坡道', date: '旅行第一天',
+        text: '江之岛的坡道，一转身就是海。' },
+      { img: 'assets/photos/day1-sunset-beach.jpg', place: '江之岛 · 海边', date: '旅行第一天',
+        text: '等日落的时候，你蹲在海边写写画画，我在后面偷偷拍你。' },
+      { img: 'assets/photos/0919-fireworks.jpg', place: '花火大会', date: '2026.09.19',
+        text: '那天的烟花很美，但我还是偷看了你好几次。' },
+      { img: 'assets/photos/0920-tokyo-national-museum.jpg', place: '东京国立博物馆', date: '2026.09.20',
+        text: '下雨天的博物馆，你在拱窗边看着满眼的绿。' },
+      // —— 之后的旅程 ——
       { img: 'assets/photos/01.jpg', place: '中部国际机场', date: 'TODO 日期',
         text: '出发啦。走在长长的连廊里，我就在想：和你去哪儿都算旅行。' },
       { img: 'assets/photos/02.jpg', place: '名古屋站', date: 'TODO 日期',
