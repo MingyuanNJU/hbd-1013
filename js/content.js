@@ -69,13 +69,13 @@ window.CONTENT = {
       { img: 'assets/photos/01.jpg', place: '中部国际机场', date: 'TODO 日期',
         text: '出发啦。走在长长的连廊里，我就在想：和你去哪儿都算旅行。' },
       { img: 'assets/photos/02.jpg', place: '名古屋站', date: 'TODO 日期',
-        text: '等车也要嘟嘴卖萌的人，是我的女朋友。' },
+        text: '等车也要嘟嘴卖萌的人。' },
       { img: 'assets/photos/03.jpg', place: '新干线上', date: 'TODO 日期',
         text: '你在看窗外的风景，我在看车窗里的你。' },
       { img: 'assets/photos/04.jpg', place: '电车上', date: 'TODO 日期',
-        text: '小懒猫又睡着了。我负责记站名，你负责好好睡觉。' },
+        text: '小懒猪又睡着了。我负责记站名，你负责好好睡觉。' },
       { img: 'assets/photos/05.jpg', place: 'TODO 店名', date: 'TODO 日期',
-        text: '吃饭最认真的人，连最后一口汤都不放过。' },
+        text: '就我们两个人的寿喜烧之旅！虽然知道你更喜欢那天的麻辣锅嘻嘻。' },
       { img: 'assets/photos/06.jpg', place: '东京 · 雨夜', date: 'TODO 日期',
         text: '雨下得再大，透明伞下面也是一整个晴天。' },
       { img: 'assets/photos/07.jpg', place: '涩谷', date: 'TODO 日期',
@@ -161,10 +161,8 @@ window.CONTENT = {
     toWall: '去照片墙',
     again: '再坐一次',
     dateLine: '{year} 年 10 月 13 日',
-    body: `亲爱的{name}：
+    body: `亲爱的王哇塞女士：
 
-
-臭猪：
 
 生日快乐！
 
@@ -172,9 +170,22 @@ window.CONTENT = {
 
 谢谢你愿意陪我去那么多地方，也谢谢你在我累的时候借我一个肩膀，或者干脆把你的脑袋靠在我的肩上。
 
+知道你现在面临很多压力，一如我之前曾经面对的那样，但是要相信，总有拨云见日时，两颗互相理解的心，能够
+
 新的一岁，希望你每天都开开心心，想吃的都能吃到，想去的地方我们一起去。
 
 往后的每一站，我都想和你一起坐。`,
+  },
+
+  // ---------- 声音 ----------
+  // 把音频文件放进 assets/audio/ 文件夹，再把路径填在这里；留空就用网页自己合成的声音。
+  audio: {
+    bgm: '',              // 背景音乐（循环播放），例如 'assets/audio/bgm.mp3'
+    bgmVolume: 0.35,      // 背景音乐音量 0–1
+    train: '',            // 电车驶过的录音，例如 'assets/audio/train.mp3'（会自动对准最响的那一段）
+    trainVolume: 0.9,
+    crossing: '',         // 踏切「当当」声的录音；留空就用合成的铃声
+    crossingVolume: 0.7,
   },
 
   // ---------- 照片墙云端存储（Supabase），见「使用说明.md」 ----------

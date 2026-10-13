@@ -25,24 +25,122 @@
   $('#wishTitle').textContent = fill(C.wish.title);
   document.title = fill(C.common.pageTitle);
 
-  // ---------- 声音（全部用 WebAudio 合成） ----------
+  // ---------- 声音：合成音效 + 可选的背景音乐 / 真实录音（见 content.js 的 audio） ----------
   const sound = (() => {
-    let ctx = null;
+    const A = () => C.audio || {};
+    const num = (v, d) => (typeof v === 'number' ? v : d);
+    let ctx = null, master = null, bgmEl = null, bgmGain = null;
     let muted = store.get('muted', false);
+    const bufs = {};
     const btn = $('#muteBtn');
     const paint = () => { btn.classList.toggle('is-muted', muted); btn.setAttribute('aria-label', muted ? '打开声音' : '关闭声音'); };
     paint();
-    btn.addEventListener('click', () => { muted = !muted; store.set('muted', muted); paint(); });
+    btn.addEventListener('click', () => { muted = !muted; store.set('muted', muted); paint(); ac(); startBgm(); applyMute(); });
 
     function ac() {
       if (!ctx) {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return null;
+        // iPhone 静音键打开时也让网页出声（Safari 17+ 支持）
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* ignore */ }
         ctx = new AC();
+        master = ctx.createGain();
+        master.gain.value = muted ? 0 : 1;
+        master.connect(ctx.destination);
+        loadSamples();
       }
       if (ctx.state === 'suspended') ctx.resume();
       return ctx;
     }
+
+    // ---- 录音音效：下载 → 解码 → 找到最响的位置 ----
+    function loadSamples() {
+      ['train', 'crossing'].forEach((k) => {
+        const url = A()[k];
+        if (!url) return;
+        fetch(url)
+          .then((r) => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.arrayBuffer(); })
+          .then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)))
+          .then((b) => { b.peak = peakTime(b); bufs[k] = b; })
+          .catch((e) => console.warn('音效加载失败，改用合成音：', e));
+      });
+    }
+    function peakTime(b) {
+      const d = b.getChannelData(0), win = Math.floor(b.sampleRate * 0.1);
+      let best = 0, at = 0;
+      for (let i = 0; i + win < d.length; i += win) {
+        let s = 0;
+        for (let j = i; j < i + win; j += 4) s += d[j] * d[j];
+        if (s > best) { best = s; at = i; }
+      }
+      return at / b.sampleRate;
+    }
+    function play(buf, { offset = 0, dur = buf.duration, vol = 1, fadeIn = 0.05, fadeOut = 0.5 } = {}) {
+      const a = ac(); if (!a || muted) return;
+      offset = Math.max(0, Math.min(offset, buf.duration - 0.1));
+      dur = Math.min(dur, buf.duration - offset);
+      const src = a.createBufferSource();
+      const g = a.createGain();
+      const t = a.currentTime;
+      src.buffer = buf;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol, t + fadeIn);
+      g.gain.setValueAtTime(vol, t + Math.max(fadeIn, dur - fadeOut));
+      g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      src.connect(g).connect(master);
+      src.start(t, offset, dur + 0.05);
+    }
+
+    // ---- 背景音乐 ----
+    const bgmVol = () => num(A().bgmVolume, 0.35);
+    function startBgm() {
+      if (bgmEl || !A().bgm || !ac()) return;
+      bgmEl = new Audio();
+      bgmEl.src = A().bgm;
+      bgmEl.loop = true;
+      bgmEl.preload = 'auto';
+      bgmEl.setAttribute('playsinline', '');
+      try { // 接到 WebAudio 上才能在 iPhone 上调音量、做淡入淡出
+        bgmGain = ctx.createGain();
+        bgmGain.gain.value = 0.0001;
+        ctx.createMediaElementSource(bgmEl).connect(bgmGain).connect(master);
+      } catch (e) { bgmGain = null; }
+      resumeBgm(2.5);
+    }
+    function ramp(to, secs) {
+      if (!bgmGain) { if (bgmEl) bgmEl.volume = Math.max(0, Math.min(1, to)); return; }
+      const t = ctx.currentTime;
+      bgmGain.gain.cancelScheduledValues(t);
+      bgmGain.gain.setValueAtTime(Math.max(0.0001, bgmGain.gain.value), t);
+      bgmGain.gain.linearRampToValueAtTime(Math.max(0.0001, to), t + secs);
+    }
+    function resumeBgm(fade = 0.4) {
+      if (!bgmEl || muted || document.hidden) return;
+      const p = bgmEl.play();
+      if (p && p.catch) p.catch(() => {});
+      ramp(bgmVol(), fade);
+    }
+    // 让背景音乐暂时变小（过场、生日歌时）
+    function duck(level, secs) {
+      if (!bgmEl || muted) return;
+      ramp(bgmVol() * level, 0.3);
+      clearTimeout(duck.t);
+      duck.t = setTimeout(() => ramp(bgmVol(), 1.2), (secs + 0.3) * 1000);
+    }
+    function applyMute() {
+      if (!ctx) return;
+      master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.05);
+      if (bgmEl) { if (muted) bgmEl.pause(); else resumeBgm(); }
+    }
+    // 有录音音效时，页面一打开就先下载、解码好（此时音频还是暂停状态，点击后才出声）
+    if (A().train || A().crossing) ac();
+
+    document.addEventListener('visibilitychange', () => {
+      if (!bgmEl) return;
+      if (document.hidden) bgmEl.pause(); else resumeBgm(0.8);
+    });
+
+    // ---- 合成音 ----
     function tone(freq, start, dur, vol = 0.18, partials = [[1, 1], [2, 0.25], [3, 0.08]]) {
       const a = ac(); if (!a || muted) return;
       const t = a.currentTime + start;
@@ -53,7 +151,7 @@
         g.gain.setValueAtTime(0, t);
         g.gain.linearRampToValueAtTime(vol * v, t + 0.008);
         g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.12, dur));
-        o.connect(g).connect(a.destination);
+        o.connect(g).connect(master);
         o.start(t); o.stop(t + dur + 0.05);
       });
     }
@@ -75,21 +173,27 @@
       [77, .75], [77, .25], [76, 1], [72, 1], [74, 1], [72, 2.5],
     ];
     return {
-      unlock: ac,
+      unlock() { const a = ac(); startBgm(); return a; },
+      debug: () => ({ ctx: ctx && ctx.state, muted, bgm: bgmEl ? { playing: !bgmEl.paused, t: +bgmEl.currentTime.toFixed(2), gain: bgmGain ? +bgmGain.gain.value.toFixed(3) : null } : null, samples: Object.keys(bufs).map((k) => k + '@' + bufs[k].peak.toFixed(2) + 's') }),
       ctx: ac,
+      duck,
       blip(n = 76, d = 0.18) { tone(midi(n), 0, d, 0.14); },
       chord(ns) { ns.forEach((n, i) => tone(midi(n), i * 0.07, 0.6, 0.12)); },
       birthday() {
+        duck(0.2, 12);
         const beat = 0.48;
         let t = 0.1;
         SONG.forEach(([n, b]) => { tone(midi(n), t, b * beat * 1.6, 0.16); t += b * beat; });
       },
-      // 踏切的「当当」声
+      // 踏切的「当当」声：有录音用录音，没有就合成
       crossing(times = 4) {
+        if (bufs.crossing) { play(bufs.crossing, { dur: 3.3, vol: num(A().crossingVolume, 0.7), fadeOut: 0.7 }); return; }
         for (let i = 0; i < times; i++) tone(i % 2 ? 990 : 1050, i * 0.32, 0.3, 0.07, [[1, 1], [2.76, 0.4], [5.4, 0.15]]);
       },
-      // 电车驶过：低频轰隆 + 轨缝的「哐当哐当」
+      // 电车驶过：有录音就把最响的那一刻对准电车经过画面中央，没有就合成轰隆声
       rumble(dur = 1.5) {
+        const b = bufs.train;
+        if (b) { play(b, { offset: b.peak - 1.0, dur: 2.9, vol: num(A().trainVolume, 0.9), fadeIn: 0.25, fadeOut: 0.9 }); return; }
         const a = ac(); if (!a || muted) return;
         const t = a.currentTime;
         const src = a.createBufferSource(); src.buffer = noiseBuf(a);
@@ -98,14 +202,14 @@
         g.gain.setValueAtTime(0.0001, t);
         g.gain.exponentialRampToValueAtTime(0.9, t + dur * 0.4);
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        src.connect(lp).connect(g).connect(a.destination);
+        src.connect(lp).connect(g).connect(master);
         src.start(t); src.stop(t + dur + 0.05);
         for (let k = 0.15; k < dur - 0.15; k += 0.27) {
           [0, 0.07].forEach((o) => {
             const os = a.createOscillator(); const og = a.createGain();
             os.frequency.setValueAtTime(110, t + k + o); os.frequency.exponentialRampToValueAtTime(45, t + k + o + 0.08);
             og.gain.setValueAtTime(0.25, t + k + o); og.gain.exponentialRampToValueAtTime(0.0001, t + k + o + 0.1);
-            os.connect(og).connect(a.destination); os.start(t + k + o); os.stop(t + k + o + 0.12);
+            os.connect(og).connect(master); os.start(t + k + o); os.stop(t + k + o + 0.12);
           });
         }
       },
@@ -245,6 +349,7 @@
     document.body.classList.add('is-passing');
     led(i);
     sound.crossing(9);
+    sound.duck(0.3, 2.6);
     SCENE.pass(() => show(i), { onStart: () => sound.rumble(2.0) }).then(() => {
       document.body.classList.remove('is-passing');
       $('#led').hidden = true;
