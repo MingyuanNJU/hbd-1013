@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#FFF6EE" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16131F" media="(prefers-color-scheme: dark)">
+  <title>生日列车</title>
+  <meta property="og:title" content="生日列车 🎂">
+  <meta property="og:description" content="一张只属于你的车票，请检票上车。">
+  <meta name="description" content="一张只属于你的车票，请检票上车。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 顶部线路图 -->
+  <header class="line" id="line" hidden>
+    <ol class="line__stops" id="stops"></ol>
+    <button class="icon-btn" id="muteBtn" type="button" aria-label="关闭声音" title="声音">🔊</button>
+  </header>
+
+  <main id="app">
+    <!-- 0 检票口 -->
+    <section class="station" data-station="gate" data-label="检票" id="st-gate">
+      <div class="wrap center">
+        <div class="ticket">
+          <div class="ticket__head">
+            <span class="ticket__brand">HAPPY BIRTHDAY EXPRESS</span>
+            <span class="ticket__no">No. 1013</span>
+          </div>
+          <h1 class="ticket__title" data-text="gate.title"></h1>
+          <div class="ticket__route">
+            <span>今天</span><span class="ticket__arrow">→</span><span>永远</span>
+          </div>
+          <form class="gate" id="gateForm" autocomplete="off">
+            <label for="gateInput" data-text="gate.question"></label>
+            <input id="gateInput" inputmode="text" enterkeyhint="go" placeholder="暗号">
+            <p class="gate__hint" id="gateHint" hidden data-text="gate.hint"></p>
+            <p class="gate__err" id="gateErr" aria-live="polite"></p>
+            <button class="btn btn--primary" type="submit">检票上车</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1 许愿站 -->
+    <section class="station" data-station="wish" data-label="许愿" id="st-wish" hidden>
+      <div class="wrap center">
+        <p class="kicker">第一站 · 许愿</p>
+        <h2 class="wish__prompt" id="wishPrompt" data-text="wish.prompt"></h2>
+        <div class="cake" id="cake" aria-label="生日蛋糕">
+          <div class="cake__candles" id="candles"></div>
+          <div class="cake__top"></div>
+          <div class="cake__layer cake__layer--1"></div>
+          <div class="cake__layer cake__layer--2"></div>
+          <div class="cake__plate"></div>
+        </div>
+        <div class="wish__controls" id="wishControls">
+          <button class="btn btn--primary" type="button" id="micBtn">🎤 对着麦克风吹</button>
+          <p class="muted small" id="micNote">也可以直接点蜡烛把它吹灭</p>
+        </div>
+        <div class="wish__done" id="wishDone" hidden>
+          <h1 class="hero-title" id="wishTitle"></h1>
+          <p class="lead" data-text="wish.sub"></p>
+          <button class="btn btn--primary next" type="button">开往下一站 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 甜蜜点滴 -->
+    <section class="station" data-station="timeline" data-label="点滴" id="st-timeline" hidden>
+      <div class="wrap">
+        <p class="kicker">第二站 · 甜蜜点滴</p>
+        <h2 class="title">我们一起走过的地方</h2>
+        <ol class="timeline" id="timeline"></ol>
+        <div class="center"><button class="btn btn--primary next" type="button">开往下一站 →</button></div>
+      </div>
+    </section>
+
+    <!-- 3 回忆翻牌 -->
+    <section class="station" data-station="memory" data-label="翻牌" id="st-memory" hidden>
+      <div class="wrap">
+        <p class="kicker">第三站 · 回忆翻牌</p>
+        <h2 class="title">考考你的记性</h2>
+        <p class="lead" data-text="memory.intro"></p>
+        <div class="stats"><span>步数 <b id="memMoves">0</b></span><span>配对 <b id="memPairs">0</b> / <b id="memTotal">6</b></span><button class="link-btn" type="button" id="memReset">重新洗牌</button></div>
+        <div class="memory" id="memory"></div>
+        <div class="done-card" id="memDone" hidden>
+          <p class="done-card__text" data-text="memory.done"></p>
+          <button class="btn btn--primary next" type="button">开往下一站 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 抓小懒猫 -->
+    <section class="station" data-station="whack" data-label="小懒猫" id="st-whack" hidden>
+      <div class="wrap">
+        <p class="kicker">第四站 · 抓小懒猫</p>
+        <h2 class="title">今天你说了算</h2>
+        <p class="lead" data-text="whack.intro"></p>
+        <div class="stats"><span>得分 <b id="whScore">0</b></span><span>剩余 <b id="whTime">30</b> 秒</span></div>
+        <div class="whack" id="whack"></div>
+        <div class="center whack__start" id="whStartWrap">
+          <button class="btn btn--primary" type="button" id="whStart">开始！</button>
+        </div>
+        <div class="done-card" id="whDone" hidden>
+          <p class="done-card__score">得分 <b id="whFinal">0</b></p>
+          <p class="done-card__text" id="whResult"></p>
+          <div class="row">
+            <button class="btn btn--ghost" type="button" id="whAgain">再打一局</button>
+            <button class="btn btn--primary next" type="button">开往下一站 →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 照片墙 -->
+    <section class="station" data-station="wall" data-label="照片墙" id="st-wall" hidden>
+      <div class="wrap wrap--wide">
+        <p class="kicker">第五站 · 照片墙</p>
+        <h2 class="title" data-text="wall.title"></h2>
+        <p class="lead" data-text="wall.intro"></p>
+        <div class="wall__bar">
+          <button class="btn btn--primary" type="button" id="wallAdd">📷 贴一张照片</button>
+          <input type="file" id="wallFile" accept="image/*" multiple hidden>
+          <p class="muted small" id="wallStatus" aria-live="polite"></p>
+        </div>
+        <div class="wall" id="wall"></div>
+        <div class="center"><button class="btn btn--primary next" type="button">开往终点站 →</button></div>
+      </div>
+    </section>
+
+    <!-- 6 终点站 -->
+    <section class="station" data-station="letter" data-label="终点" id="st-letter" hidden>
+      <div class="wrap">
+        <p class="kicker">终点站</p>
+        <h2 class="title">写给你的信</h2>
+        <article class="letter" id="letter">
+          <div class="letter__body" id="letterBody"></div>
+          <p class="letter__sign" id="letterSign" hidden></p>
+        </article>
+        <p class="muted small center" id="letterSkip">（点一下信纸可以直接看完）</p>
+        <div class="row center" id="letterEnd" hidden>
+          <button class="btn btn--ghost" type="button" id="toWall">去照片墙</button>
+          <button class="btn btn--primary" type="button" id="again">🎂 再坐一次</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 大图 -->
+  <div class="lightbox" id="lightbox" hidden>
+    <figure class="lightbox__fig">
+      <img id="lbImg" alt="">
+      <figcaption id="lbCap"></figcaption>
+    </figure>
+    <button class="icon-btn lightbox__close" type="button" aria-label="关闭">✕</button>
+  </div>
+
+  <!-- 上传弹窗 -->
+  <div class="modal" id="upModal" hidden>
+    <div class="modal__card" role="dialog" aria-modal="true" aria-labelledby="upTitle">
+      <h3 id="upTitle">贴到照片墙</h3>
+      <div class="up__thumbs" id="upThumbs"></div>
+      <label for="upCaption" class="small muted">写一句话（可选）</label>
+      <textarea id="upCaption" rows="2" maxlength="200" placeholder="比如：这张是我最喜欢的"></textarea>
+      <div class="row">
+        <button class="btn btn--ghost" type="button" id="upCancel">取消</button>
+        <button class="btn btn--primary" type="button" id="upOk">贴上去</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+
+  <script src="js/content.js" defer></script>
+  <script src="js/candle.js" defer></script>
+  <script src="js/memory.js" defer></script>
+  <script src="js/whack.js" defer></script>
+  <script src="js/wall.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
