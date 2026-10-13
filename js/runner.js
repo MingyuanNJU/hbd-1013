@@ -63,14 +63,21 @@
       island: '#86B3DA', sea: ['#4C9FDD', '#3A90D4', '#2C82C9'], glint: '#FFFFFF',
       fencePost: '#A9553A', fenceRail: '#D8D0C2', wall: '#D9D3C4', wallHi: '#F0EBDF',
       walk: '#E3D8BC', walkS: '#D3C6A5', curb: '#B9AC8B', water: '#2477BF', waterHi: '#62AEE4',
-      rail: '#6C7177', ballast: '#8E857A',
+      rail: '#6C7177', ballast: '#8E857A', fuji: '#B9D6EE',
+    },
+    dusk: {
+      sky: ['#2B2F6B', '#5A4590', '#9A5590', '#E07A72', '#FFB27A'], cloud: '#FFC9A8', cloudS: '#E99A8C',
+      island: '#5E4270', sea: ['#C8807E', '#8A6690', '#4E4F86'], glint: '#FFE2A8',
+      fencePost: '#8E3F33', fenceRail: '#C9A99A', wall: '#C9A893', wallHi: '#E4C3A8',
+      walk: '#C8AE98', walkS: '#B89E88', curb: '#9A8070', water: '#3E4278', waterHi: '#86628F',
+      rail: '#5E5A66', ballast: '#76686F', fuji: '#4A3866',
     },
     night: {
       sky: ['#070D22', '#0A1430', '#0F1C3E', '#14264D', '#1B315C'], cloud: '#2A3B60', cloudS: '#22314F',
       island: '#0F1E3D', sea: ['#152D55', '#11264A', '#0E2040'], glint: '#FFE9A8',
       fencePost: '#5A3530', fenceRail: '#5E6375', wall: '#4A5064', wallHi: '#5E6579',
       walk: '#454B5C', walkS: '#3B4050', curb: '#2E3242', water: '#0B1A36', waterHi: '#1A3561',
-      rail: '#4B5058', ballast: '#3D3A40',
+      rail: '#4B5058', ballast: '#3D3A40', fuji: '#141C38',
     },
   };
   const isDark = () => (window.HBD_SCENE ? window.HBD_SCENE.isDark() : false);
@@ -107,8 +114,12 @@
 
     enter() {
       this.active = true;
-      this.pal = isDark() ? PAL.night : PAL.day;
-      this.night = isDark();
+      // 天色跟着整趟旅程走：到这一站正好是黄昏
+      const SC = window.HBD_SCENE;
+      const t = SC ? SC.todTarget : 0;
+      this.tod = t;
+      this.pal = !SC ? PAL.day : t <= 1 ? SC.lerpPal(PAL.day, PAL.dusk, t) : SC.lerpPal(PAL.dusk, PAL.night, t - 1);
+      this.night = t > 1.25;
       this.resize();
       this.last = performance.now();
       cancelAnimationFrame(this.raf);
@@ -368,6 +379,23 @@
       for (let i = 0; i < 4; i++) {
         const span = W + 60, x = ((i * 70 - cam * 0.1 - t * 2) % span + span) % span - 30, y = 14 + (i % 3) * 12, w = 18 + (i % 2) * 10;
         f(P.cloudS, x, y, w, 2); f(P.cloud, x + 1, y - 3, w - 2, 3); f(P.cloud, x + Math.round(w * 0.4), y - 6, Math.round(w * 0.35), 3);
+      }
+      // 夕阳 + 富士山剪影
+      const SC = window.HBD_SCENE, cl = (v) => Math.max(0, Math.min(1, v));
+      const sunT = (this.tod - 0.45) / 1.0;
+      if (SC && sunT > 0 && sunT < 1.05) {
+        const sx = Math.round(W * 0.72), sy = Math.round(16 + (skyB + 3 - 16) * cl(sunT)), sr = 7;
+        g.fillStyle = SC.mix('#FFF4D0', '#FF6A30', cl(sunT));
+        for (let yy = -sr; yy <= sr; yy++) { const w = Math.round(Math.sqrt(sr * sr - yy * yy)); g.fillRect(sx - w + ox, sy + yy, w * 2, 1); }
+      }
+      const fv = cl((this.tod - 0.5) / 0.45) * (1 - 0.55 * cl((this.tod - 1.5) / 0.5));
+      if (SC && fv > 0.02) {
+        const fx = Math.round(W * 0.3 - cam * 0.02) % (W + 80), bw = 70, fh = 17;
+        g.fillStyle = SC.mix(P.sky[P.sky.length - 1], P.fuji, fv);
+        for (let i = -(bw >> 1); i <= bw >> 1; i++) {
+          const d = Math.max(0, (Math.abs(i) / (bw / 2) - 0.07) / 0.93), h = Math.round(fh * Math.pow(1 - d, 1.7));
+          if (h > 0) g.fillRect(fx + i + ox, skyB - h, 1, h);
+        }
       }
       // 江之岛（视差 0.04）
       const span = W + 140, ix = ((Math.round(W * 0.6) - Math.round(cam * 0.04)) % span + span) % span - 70;

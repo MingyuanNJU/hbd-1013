@@ -20,7 +20,7 @@ window.HBD_SCENE = (() => {
     rail: '#6C7177', railHi: '#D2D7DB',
     ground: '#8F8E88', groundS: '#83827C', hatchY: '#F2C230', hatchK: '#262626',
     pole: '#A9ABA7', poleS: '#8B8D89', wire: '#2C3138',
-    bird: '#F4F7FA',
+    bird: '#F4F7FA', fuji: '#B9D6EE',
   };
   const NIGHT = {
     sky: ['#070D22', '#0A1430', '#0F1C3E', '#14264D', '#1B315C', '#243D6B'],
@@ -34,8 +34,33 @@ window.HBD_SCENE = (() => {
     rail: '#4B5058', railHi: '#9AA3B0',
     ground: '#34373F', groundS: '#2E3138', hatchY: '#9C8530', hatchK: '#18181A',
     pole: '#555A63', poleS: '#454951', wire: '#0E1220',
-    bird: '#9FB0CC',
+    bird: '#9FB0CC', fuji: '#141C38',
   };
+  const DUSK = {
+    sky: ['#2B2F6B', '#4B3F86', '#7E4F93', '#C0607F', '#F08A6A', '#FFC07A'],
+    haze: '#FFD9A0', cloud: '#FFC9A8', cloudS: '#E99A8C', cloudSS: '#B9708A',
+    island: '#5E4270', islandS: '#4A3360',
+    sea: ['#E8957A', '#C07A88', '#86628F', '#56528A', '#3E4278'], glint: '#FFE2A8', glint2: '#FFB27A',
+    fenceRail: '#C9A99A', fencePost: '#8E3F33', fencePostS: '#73322A',
+    wall: '#C9A893', wallHi: '#E4C3A8', wallS: '#A88A7A',
+    road: '#8F8396', roadS: '#847990', roadLine: '#D6BFB5',
+    ballast: '#76686F', ballastA: '#655962', ballastB: '#8A7B80', sleeper: '#4A3530',
+    rail: '#5E5A66', railHi: '#F0B89A',
+    ground: '#7A7080', groundS: '#6F6676', hatchY: '#E0A83A', hatchK: '#2A2228',
+    pole: '#8E8790', poleS: '#746E78', wire: '#2B2236',
+    bird: '#3A2A40', fuji: '#4A3866',
+  };
+
+  // ---------- 一天的时间：0 = 白天，1 = 黄昏，2 = 夜晚（随站点推进） ----------
+  const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+  const mix = (a, b, t) => { const A = hex(a), B = hex(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  function lerpPal(a, b, t) {
+    const o = {};
+    for (const k in a) o[k] = Array.isArray(a[k]) ? a[k].map((c, i) => mix(c, b[k][i], t)) : mix(a[k], b[k], t);
+    return o;
+  }
+  const palAt = (tod, D = DAY, K = DUSK, N = NIGHT) => (tod <= 1 ? lerpPal(D, K, Math.max(0, tod)) : lerpPal(K, N, Math.min(1, tod - 1)));
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
   // ---------- 江之电（绿 + 奶油），x 为车头左端，railY 为轨面 ----------
   const TC = {
@@ -150,6 +175,7 @@ window.HBD_SCENE = (() => {
   const cv = document.getElementById('bg');
   const g = cv.getContext('2d');
   let W = 0, H = 0, S = 4, P = DAY, L = {};
+  let tod = 0, todTo = 0;
   const st = { t: 0, alarm: false, bar: 0, barTo: 0, trains: [], cyclist: null, nextAmb: 20, nextCyc: 5, busy: false };
   let seed = 1;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -179,7 +205,7 @@ window.HBD_SCENE = (() => {
     cv.width = W; cv.height = H;
     cv.style.width = W * S + 'px';
     cv.style.height = H * S + 'px';
-    P = isDark() ? NIGHT : DAY;
+    P = palAt(tod);
     layout();
     draw();
   }
@@ -201,9 +227,22 @@ window.HBD_SCENE = (() => {
       fr(bands[i], 0, y0, W, y1 - y0);
       if (i > 0) { dither(bands[i - 1], y0); }
     }
-    if (P === NIGHT) {
-      L.stars.forEach((s) => { if (Math.sin(st.t * 2 + s.p * 3) > -0.3) fr(s.p > 4 ? '#FFFFFF' : '#AFC3E8', s.x, s.y, 1, 1); });
-      const mx = Math.round(W * 0.78), my = Math.round(H * 0.14), mr = Math.max(4, Math.round(6 * L.k));
+    const starA = clamp01((tod - 1.3) / 0.5);
+    if (starA > 0) L.stars.forEach((s) => { if (s.p / 6 < starA && Math.sin(st.t * 2 + s.p * 3) > -0.3) fr(s.p > 4 ? '#FFFFFF' : '#AFC3E8', s.x, s.y, 1, 1); });
+    // 夕阳：慢慢落进海里
+    const sunT = (tod - 0.45) / 1.0;
+    if (sunT > 0 && sunT < 1.05) {
+      const sr = Math.max(5, Math.round(7 * L.k)), sx = Math.round(W * 0.4), sy = Math.round(H * 0.15 + (L.hy + sr * 0.6 - H * 0.15) * clamp01(sunT));
+      const c = mix('#FFF4D0', '#FF6A30', clamp01(sunT));
+      g.fillStyle = 'rgba(255,170,90,' + (0.12 * (1 - Math.abs(sunT - 0.7))).toFixed(3) + ')';
+      g.fillRect(sx - sr * 3, sy - sr * 2, sr * 6, sr * 4);
+      g.fillStyle = c;
+      for (let yy = -sr; yy <= sr; yy++) { const w = Math.round(Math.sqrt(sr * sr - yy * yy)); g.fillRect(sx - w, sy + yy, w * 2, 1); }
+      fr(mix(c, '#FFFFFF', 0.45), sx - Math.round(sr * 0.4), sy - Math.round(sr * 0.5), Math.max(1, Math.round(sr * 0.4)), Math.max(1, Math.round(sr * 0.3)));
+    }
+    if (tod > 1.5) {
+      const rise = clamp01((tod - 1.5) / 0.5);
+      const mx = Math.round(W * 0.78), mr = Math.max(4, Math.round(6 * L.k)), my = Math.round(L.hy - mr - (L.hy - mr - H * 0.14) * rise);
       g.fillStyle = 'rgba(255,240,200,.07)'; g.fillRect(mx - mr * 2, my - mr * 2, mr * 4, mr * 4);
       g.fillStyle = '#FFF4D2';
       for (let yy = -mr; yy <= mr; yy++) { const w = Math.round(Math.sqrt(mr * mr - yy * yy)); g.fillRect(mx - w, my + yy, w * 2, 1); }
@@ -211,7 +250,7 @@ window.HBD_SCENE = (() => {
     }
     const cs = [P.cloud, P.cloudS, P.cloudSS];
     L.highClouds.forEach((c) => cloud(((c.x + st.t * 0.6) % (W + c.w * 2)) - c.w, c.y, c.w, cs));
-    if (P === DAY) L.birds.forEach((b) => {
+    if (tod < 1.3) L.birds.forEach((b) => {
       const x = Math.round(((b.x + st.t * 2.2) % (W + 20)) - 10), y = b.y + Math.round(Math.sin(st.t + b.p) * 2);
       g.fillStyle = P.bird; g.fillRect(x, y, 1, 1); g.fillRect(x + 2, y, 1, 1); g.fillRect(x + 1, y + 1, 1, 1);
       if (Math.sin(st.t * 6 + b.p) > 0) { g.fillRect(x - 1, y - 1, 1, 1); g.fillRect(x + 3, y - 1, 1, 1); }
@@ -220,6 +259,23 @@ window.HBD_SCENE = (() => {
 
   function drawSea() {
     const { hy, seaB } = L;
+    // 远处的低云（在富士山和江之岛后面）
+    const cs = [P.cloud, P.cloudS, P.cloudSS];
+    L.clouds.forEach((c) => cloud(((c.x + st.t * 0.35) % (W + c.w * 2)) - c.w, c.y, c.w, cs));
+    // 富士山剪影（黄昏最清楚，夜里淡淡的）
+    const fv = clamp01((tod - 0.5) / 0.45) * (1 - 0.55 * clamp01((tod - 1.5) / 0.5));
+    if (fv > 0.02) {
+      const bw = Math.min(Math.round(100 * L.k), Math.round(W * 0.62)), fh = Math.round(bw * 0.24), fx = Math.round(W * 0.24);
+      const col = mix(P.sky[P.sky.length - 1], P.fuji, fv), snow = mix(col, '#F2B8C0', 0.32 * fv * clamp01(1.6 - tod));
+      for (let i = -(bw >> 1); i <= bw >> 1; i++) {
+        const d = Math.max(0, (Math.abs(i) / (bw / 2) - 0.07) / 0.93);
+        const h = Math.round(fh * Math.pow(1 - d, 1.7));
+        if (h <= 0) continue;
+        g.fillStyle = col; g.fillRect(fx + i, hy - h, 1, h);
+        const cap = Math.round(h - fh * 0.72);
+        if (cap > 0) { g.fillStyle = snow; g.fillRect(fx + i, hy - h, 1, Math.min(cap + ((i * 7) & 1), h)); }
+      }
+    }
     // 远处的江之岛 + 展望灯台
     const iw = Math.round(46 * L.k), ih = Math.round(9 * L.k), ix = Math.round(W * 0.64);
     g.fillStyle = P.island;
@@ -230,9 +286,7 @@ window.HBD_SCENE = (() => {
     const tx = ix + Math.round(iw * 0.45), th = Math.round(8 * L.k);
     fr(P.islandS, tx, hy - ih - th, 1, th + 1);
     fr(P.islandS, tx - 1, hy - ih - th, 3, 1);
-    if (P === NIGHT && Math.sin(st.t * 1.5) > 0.6) fr('#FFE9A8', tx, hy - ih - th - 1, 1, 1);
-    const cs = [P.cloud, P.cloudS, P.cloudSS];
-    L.clouds.forEach((c) => cloud(((c.x + st.t * 0.35) % (W + c.w * 2)) - c.w, c.y, c.w, cs));
+    if (tod > 1.4 && Math.sin(st.t * 1.5) > 0.6) fr('#FFE9A8', tx, hy - ih - th - 1, 1, 1);
     fr(P.haze, 0, hy, W, 1);
     const bands = P.sea, n = bands.length, hh = seaB - hy - 1;
     for (let i = 0; i < n; i++) {
@@ -240,10 +294,10 @@ window.HBD_SCENE = (() => {
       fr(bands[i], 0, y0, W, y1 - y0);
       if (i > 0) dither(bands[i - 1], y0);
     }
-    if (P === NIGHT) {
-      const mx = Math.round(W * 0.78);
-      for (let y = hy + 2; y < seaB; y += 2) if (Math.sin(st.t * 3 + y) > -0.2) fr('#E9D9A0', mx - 2 + ((y * 7) % 5), y, 2 + ((y * 3) % 4), 1);
-    }
+    const refl = (x, c, a) => { for (let y = hy + 2; y < seaB; y += 2) if (Math.sin(st.t * 3 + y) > 1 - 2 * a) fr(c, x - 2 + ((y * 7) % 5), y, 2 + ((y * 3) % 4), 1); };
+    const sunT = (tod - 0.45) / 1.0;
+    if (sunT > 0.25 && sunT < 1.05) refl(Math.round(W * 0.4), '#FFC47A', 0.6 * (1 - Math.abs(sunT - 0.75)));
+    if (tod > 1.6) refl(Math.round(W * 0.78), '#E9D9A0', 0.6 * clamp01((tod - 1.6) / 0.4));
     L.glints.forEach((s) => { if (Math.sin(st.t * 2.2 + s.p * 4) > 0.55) fr(s.p > 3 ? P.glint : P.glint2, s.x, s.y, s.w, 1); });
   }
 
@@ -350,7 +404,7 @@ window.HBD_SCENE = (() => {
     drawWires();
     drawShore();
     if (st.cyclist) drawCyclist(st.cyclist);
-    st.trains.forEach((tr) => drawTrain(g, tr.x, L.trackY, H, P === NIGHT));
+    st.trains.forEach((tr) => drawTrain(g, tr.x, L.trackY, H, tod > 1.25));
     drawCrossing();
     drawPole();
   }
@@ -370,7 +424,11 @@ window.HBD_SCENE = (() => {
       if (st.nextCyc <= 0) { st.nextCyc = 25 + Math.random() * 20; st.cyclist = { x: -14, y: L.wallB + Math.round((L.trackY - L.wallB) * 0.8) }; }
       if (st.nextAmb <= 0) { st.nextAmb = 45 + Math.random() * 30; if (!st.trains.length) runTrain({ speedDur: 3.4 }); }
     }
-    const moving = st.trains.length || st.cyclist || st.bar !== st.barTo;
+    if (tod !== todTo) {
+      tod += Math.sign(todTo - tod) * Math.min(Math.abs(todTo - tod), dt * 0.42);
+      P = palAt(tod);
+    }
+    const moving = st.trains.length || st.cyclist || st.bar !== st.barTo || tod !== todTo;
     acc += dt;
     if (moving || acc > 0.1) { acc = 0; draw(); }
     requestAnimationFrame(loop);
@@ -399,12 +457,15 @@ window.HBD_SCENE = (() => {
   }
 
   window.addEventListener('resize', resize);
-  if (window.matchMedia) {
-    const mq = matchMedia('(prefers-color-scheme: dark)');
-    if (mq.addEventListener) mq.addEventListener('change', resize);
-  }
   resize();
   requestAnimationFrame(loop);
 
-  return { pass, reduce, drawTrain, trainLength, trainTop, isDark, get scale() { return S; } };
+  return {
+    pass, reduce, drawTrain, trainLength, trainTop, isDark, lerpPal, mix,
+    get scale() { return S; },
+    get tod() { return tod; },
+    get todTarget() { return todTo; },
+    // 设定天色：instant 为 true 时立即切换，否则在几秒内慢慢过渡
+    setTime(t, instant) { todTo = Math.max(0, Math.min(2, t)); if (instant) { tod = todTo; P = palAt(tod); draw(); } },
+  };
 })();

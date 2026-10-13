@@ -137,20 +137,32 @@
 
     // ---- 我们的歌（歌单）----
     let songEnd = null;
-    function songState() { if (songCb) songCb({ playing: !!songEl && !songEl.paused, t: songEl ? songEl.currentTime : 0, d: songEl ? songEl.duration || 0 : 0, src: songEl ? songEl.getAttribute('src') : '' }); }
+    const SILENT = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+    function songState() { if (songEl && songEl.getAttribute('src') === SILENT) return; if (songCb) songCb({ playing: !!songEl && !songEl.paused, t: songEl ? songEl.currentTime : 0, d: songEl ? songEl.duration || 0 : 0, src: songEl ? songEl.getAttribute('src') : '' }); }
+    function ensureSong() {
+      if (songEl || !ac()) return;
+      songEl = new Audio();
+      songEl.preload = 'auto';
+      songEl.setAttribute('playsinline', '');
+      try { ctx.createMediaElementSource(songEl).connect(master); } catch (e) { /* 直接播放 */ }
+      ['play', 'pause', 'timeupdate', 'loadedmetadata'].forEach((ev) => songEl.addEventListener(ev, songState));
+      songEl.addEventListener('ended', () => {
+        if (songEl.getAttribute('src') === SILENT) return;
+        if (songEnd && songEnd()) return;          // 自动接下一首
+        hold = false; resumeBgm(1.5); songState();
+      });
+    }
+    // 在第一次点击时用一段静音「解锁」播放器，之后才能不经点击自动开始放歌
+    function primeSong() {
+      ensureSong();
+      if (!songEl || songEl.getAttribute('src')) return;
+      songEl.setAttribute('src', SILENT);
+      const p = songEl.play();
+      if (p && p.then) p.then(() => songEl.pause()).catch(() => {});
+    }
     function songPlay(url) {
       if (!url || !ac()) return;
-      if (!songEl) {
-        songEl = new Audio();
-        songEl.preload = 'auto';
-        songEl.setAttribute('playsinline', '');
-        try { ctx.createMediaElementSource(songEl).connect(master); } catch (e) { /* 直接播放 */ }
-        ['play', 'pause', 'timeupdate', 'loadedmetadata'].forEach((ev) => songEl.addEventListener(ev, songState));
-        songEl.addEventListener('ended', () => {
-          if (songEnd && songEnd()) return;          // 自动接下一首
-          hold = false; resumeBgm(1.5); songState();
-        });
-      }
+      ensureSong();
       if (songEl.getAttribute('src') !== url) { songEl.setAttribute('src', url); songEl.load(); }
       if (muted) { muted = false; store.set('muted', false); paint(); applyMute(); }
       hold = true;
@@ -203,7 +215,8 @@
       [77, .75], [77, .25], [76, 1], [72, 1], [74, 1], [72, 2.5],
     ];
     return {
-      unlock() { const a = ac(); startBgm(); return a; },
+      unlock() { const a = ac(); startBgm(); primeSong(); return a; },
+      isMuted: () => muted,
       songPlay, songPause,
       songSeek(f) { if (songEl && songEl.duration) songEl.currentTime = Math.max(0, Math.min(0.999, f)) * songEl.duration; },
       songPlaying: (url) => !!songEl && !songEl.paused && (!url || songEl.getAttribute('src') === url),
@@ -324,6 +337,8 @@
   let reached = Math.min(store.get('reached', 0), names.length - 1);
   let current = -1;
   let busy = false;
+  // 一天的时间：0 白天 → 1 黄昏（鎌倉高校前）→ 2 夜晚（终点站）
+  const TOD = { gate: 0, wish: 0.1, timeline: 0.45, runner: 1.0, whack: 1.3, wall: 1.65, letter: 2.0 };
 
   $$('[data-board]').forEach((el) => {
     const k = el.dataset.board;
@@ -379,8 +394,10 @@
   function go(i, opts = {}) {
     i = Math.max(0, Math.min(names.length - 1, i));
     if (i === current || busy) return;
-    if (current < 0 || opts.instant) { show(i); return; }
+    const tod = TOD[names[i]] != null ? TOD[names[i]] : 0;
+    if (current < 0 || opts.instant) { SCENE.setTime(tod, true); show(i); return; }
     busy = true;
+    SCENE.setTime(tod);
     document.body.classList.add('is-passing');
     led(i);
     sound.crossing(9);
@@ -531,6 +548,10 @@
           $('#songBar').style.width = d ? (Math.round((t / d) * 50) * 2) + '%' : '0';
         });
         render();
+        this.autoplay = () => {
+          if (sound.isMuted() || sound.songPlaying() || !tracks[0].file) return;
+          cur = 0; render(); sound.songPlay(tracks[0].file);
+        };
       }
       this.text = fill(C.letter.body);
       $('#letterSign').textContent = '—— ' + fill(C.from) + '\n' + fill(C.letter.dateLine, { year: new Date().getFullYear() });
@@ -542,6 +563,7 @@
       });
     },
     enter() {
+      if (this.autoplay && !this.autoplayed) { this.autoplayed = true; setTimeout(() => this.autoplay(), 1300); }
       if (this.done) return;
       const body = $('#letterBody');
       body.textContent = '';
