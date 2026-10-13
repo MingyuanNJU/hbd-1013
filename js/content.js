@@ -170,7 +170,7 @@ window.CONTENT = {
 
 谢谢你愿意陪我去那么多地方，也谢谢你在我累的时候借我一个肩膀，或者干脆把你的脑袋靠在我的肩上。
 
-知道你现在面临很多压力，一如我之前曾经面对的那样，但是要相信，总有拨云见日时，两颗互相理解的心，能够
+知道你现在面临很多压力，一如我之前曾经面对的那样，但是要相信，总有拨云见日时，两颗互相理解的心，能够让幸福传递很远，远到跨过万水千山，远到克服所有困难。
 
 新的一岁，希望你每天都开开心心，想吃的都能吃到，想去的地方我们一起去。
 
@@ -190,8 +190,8 @@ window.CONTENT = {
 
   // ---------- 照片墙云端存储（Supabase），见「使用说明.md」 ----------
   supabase: {
-    url: '',
-    anonKey: '',
+    url: 'https://frqtenijfnjnqwkegddx.supabase.co',
+    anonKey: 'sb_publishable_QgcnakHXGHSppfjhK0Uk4A_jyxBPLP5',
     bucket: 'wall',
     table: 'wall_photos',
   },
