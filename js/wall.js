@@ -67,7 +67,8 @@
 
       this.grid = $('#wall');
       this.staticFrag = document.createDocumentFragment();
-      C.timeline.forEach((it) => this.staticFrag.appendChild(this.card(it.img, api.fill(it.place || ''), '')));
+      this.T = C.wall;
+      C.timeline.items.forEach((it) => this.staticFrag.appendChild(this.card(it.img, api.fill(it.place), '')));
       this.grid.appendChild(this.staticFrag);
 
       const file = $('#wallFile');
@@ -126,7 +127,7 @@
     },
 
     async load() {
-      this.status('正在加载照片…');
+      this.status(this.api.fill(this.T.loading));
       let local = await idb.all();
       let cloudRows = [];
       if (this.cloud) {
@@ -147,7 +148,7 @@
         }
       }
       const items = cloudRows.map((r) => ({ src: this.publicUrl(r.path), cap: r.caption || '', t: Date.parse(r.created_at) || 0, tag: '' }))
-        .concat(local.map((it) => ({ src: URL.createObjectURL(it.blob), cap: it.caption || '', t: it.created_at || 0, tag: '仅本机' })))
+        .concat(local.map((it) => ({ src: URL.createObjectURL(it.blob), cap: it.caption || '', t: it.created_at || 0, tag: this.api.fill(this.T.localTag) })))
         .sort((a, b) => b.t - a.t);
       const first = this.grid.firstChild;
       items.forEach((it) => this.grid.insertBefore(this.card(it.src, it.cap, it.tag), first));
@@ -155,8 +156,8 @@
     },
 
     modeNote() {
-      if (!this.cloud) return '照片暂存在这台设备上';
-      if (!this.cloudOk) return '暂时连不上云端，新照片会先存在这台设备上，之后自动同步';
+      if (!this.cloud) return this.api.fill(this.T.localOnly);
+      if (!this.cloudOk) return this.api.fill(this.T.cloudDown);
       return '';
     },
 
@@ -208,7 +209,7 @@
       $('#wallAdd').disabled = true;
       let ok = 0, bad = 0;
       for (let i = 0; i < files.length; i++) {
-        this.status('正在贴第 ' + (i + 1) + ' / ' + files.length + ' 张…');
+        this.status(this.api.fill(this.T.uploading, { i: i + 1, n: files.length }));
         let blob;
         try { blob = await compress(files[i]); } catch (e) { bad++; continue; }
         let src, tag = '';
@@ -224,7 +225,7 @@
         if (!src) {
           try { await idb.add({ blob, caption, created_at: Date.now() }); } catch (e) { /* 无痕模式：只在这次显示 */ }
           src = URL.createObjectURL(blob);
-          tag = '仅本机';
+          tag = this.api.fill(this.T.localTag);
         }
         const card = this.card(src, caption, tag);
         card.classList.add('is-new');
@@ -232,8 +233,8 @@
         ok++;
       }
       $('#wallAdd').disabled = false;
-      const msg = ok ? '贴好啦！' : '';
-      const err = bad ? bad + ' 张照片格式打不开，换一张试试？' : '';
+      const msg = ok ? this.api.fill(this.T.done) : '';
+      const err = bad ? this.api.fill(this.T.badFormat, { n: bad }) : '';
       this.status([msg, err, this.modeNote()].filter(Boolean).join(' '));
       if (ok) {
         this.api.confetti.burst(90, { hearts: true, y: 160 });

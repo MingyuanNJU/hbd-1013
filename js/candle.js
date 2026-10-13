@@ -47,7 +47,7 @@
   showDone(celebrate) {
     const { $ } = this.api;
     $('#wishControls').hidden = true;
-    $('#wishPrompt').textContent = '愿望一定会实现的！';
+    $('#wishPrompt').textContent = this.api.fill(this.api.C.wish.afterPrompt);
     $('#wishDone').hidden = false;
     if (celebrate) {
       this.api.confetti.burst(180, { hearts: true });
@@ -63,7 +63,7 @@
     const btn = $('#micBtn');
     if (this.stream) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      note.textContent = '这个浏览器用不了麦克风，直接点蜡烛就好～';
+      note.textContent = this.api.fill(this.api.C.wish.micUnsupported);
       btn.hidden = true;
       return;
     }
@@ -73,12 +73,12 @@
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       });
     } catch (e) {
-      note.textContent = '没拿到麦克风权限，直接点蜡烛把它吹灭吧～';
+      note.textContent = this.api.fill(this.api.C.wish.micDenied);
       btn.hidden = true;
       return;
     }
     const ctx = sound.ctx();
-    if (!ctx) { stream.getTracks().forEach((t) => t.stop()); note.textContent = '直接点蜡烛就好～'; btn.hidden = true; return; }
+    if (!ctx) { stream.getTracks().forEach((t) => t.stop()); note.textContent = this.api.fill(this.api.C.wish.micUnsupported); btn.hidden = true; return; }
     this.stream = stream;
     const src = ctx.createMediaStreamSource(stream);
     const an = ctx.createAnalyser();
@@ -88,7 +88,7 @@
     const buf = new Float32Array(an.fftSize);
 
     btn.disabled = true;
-    btn.textContent = '正在听…用力吹！';
+    btn.textContent = this.api.fill(this.api.C.wish.micListening);
     note.innerHTML = '<span class="mic-meter"><i></i></span>';
     const bar = note.querySelector('i');
 
@@ -137,7 +137,7 @@
     $('#wishControls').hidden = false;
     const btn = $('#micBtn');
     btn.disabled = false;
-    btn.textContent = '🎤 对着麦克风吹';
-    $('#micNote').textContent = '也可以直接点蜡烛把它吹灭';
+    btn.textContent = this.api.fill(this.api.C.wish.micButton);
+    $('#micNote').textContent = this.api.fill(this.api.C.wish.micTip);
   },
 };
