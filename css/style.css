@@ -425,11 +425,15 @@ body:not(.has-line) .led { top: calc(env(safe-area-inset-top) + 24px); }
 .song__list span { font-family: var(--mono); opacity: .6; }
 .song__list i { font-style: normal; font-size: 12px; opacity: .6; margin-left: auto; white-space: nowrap; }
 .song__list .is-current button { color: var(--amber); }
-.song__list .is-current span::before { content: "▶ "; }
+.song__list span { min-width: 1.4em; }
+.song__list .is-current span { font-size: 0; }
+.song__list .is-current span::before { content: "▶"; font-size: 13px; }
+.song__list b { min-width: 0; }
 .song__links { grid-column: 1 / -1; margin: 4px 0 0; font-size: 12px; opacity: .8; }
 .song__links a { display: inline-block; white-space: nowrap; color: #8FD3AE; margin-left: 10px; text-underline-offset: 3px; }
 @media (max-width: 420px) {
   .song { grid-template-columns: 52px 1fr; }
   .song__disc { width: 52px; height: 52px; }
   .song__ctrl { grid-column: 1 / -1; flex-direction: row; }
+  .song__list i { display: none; }
 }
