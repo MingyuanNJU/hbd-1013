@@ -135,33 +135,35 @@
       if (muted && songEl && !songEl.paused) songEl.pause();
     }
 
-    // ---- 我们的歌 ----
-    function songState() { if (songCb) songCb({ playing: !!songEl && !songEl.paused, t: songEl ? songEl.currentTime : 0, d: songEl ? songEl.duration || 0 : 0 }); }
-    function songToggle(url) {
+    // ---- 我们的歌（歌单）----
+    let songEnd = null;
+    function songState() { if (songCb) songCb({ playing: !!songEl && !songEl.paused, t: songEl ? songEl.currentTime : 0, d: songEl ? songEl.duration || 0 : 0, src: songEl ? songEl.getAttribute('src') : '' }); }
+    function songPlay(url) {
       if (!url || !ac()) return;
       if (!songEl) {
         songEl = new Audio();
-        songEl.src = url;
         songEl.preload = 'auto';
         songEl.setAttribute('playsinline', '');
         try { ctx.createMediaElementSource(songEl).connect(master); } catch (e) { /* 直接播放 */ }
         ['play', 'pause', 'timeupdate', 'loadedmetadata'].forEach((ev) => songEl.addEventListener(ev, songState));
-        songEl.addEventListener('ended', () => { hold = false; resumeBgm(1.5); songState(); });
+        songEl.addEventListener('ended', () => {
+          if (songEnd && songEnd()) return;          // 自动接下一首
+          hold = false; resumeBgm(1.5); songState();
+        });
       }
-      if (songEl.paused) {
-        if (muted) { muted = false; store.set('muted', false); paint(); applyMute(); }
-        hold = true;
-        if (bgmEl) { ramp(0, 0.4); setTimeout(() => { if (hold) bgmEl.pause(); }, 450); }
-        const p = songEl.play();
-        if (p && p.catch) p.catch(() => {});
-      } else {
-        songEl.pause();
-        hold = false;
-        resumeBgm(1.2);
-      }
+      if (songEl.getAttribute('src') !== url) { songEl.setAttribute('src', url); songEl.load(); }
+      if (muted) { muted = false; store.set('muted', false); paint(); applyMute(); }
+      hold = true;
+      if (bgmEl) { ramp(0, 0.4); setTimeout(() => { if (hold) bgmEl.pause(); }, 450); }
+      const p = songEl.play();
+      if (p && p.catch) p.catch(() => {});
     }
-    // 有录音音效时，页面一打开就先下载、解码好（此时音频还是暂停状态，点击后才出声）
-    if (A().train || A().crossing) ac();
+    function songPause() {
+      if (!songEl || songEl.paused) return;
+      songEl.pause();
+      hold = false;
+      resumeBgm(1.2);
+    }
 
     document.addEventListener('visibilitychange', () => {
       if (!bgmEl) return;
@@ -202,8 +204,11 @@
     ];
     return {
       unlock() { const a = ac(); startBgm(); return a; },
-      songToggle,
+      songPlay, songPause,
+      songSeek(f) { if (songEl && songEl.duration) songEl.currentTime = Math.max(0, Math.min(0.999, f)) * songEl.duration; },
+      songPlaying: (url) => !!songEl && !songEl.paused && (!url || songEl.getAttribute('src') === url),
       onSong(fn) { songCb = fn; },
+      onSongEnd(fn) { songEnd = fn; },
       debug: () => ({ ctx: ctx && ctx.state, muted, bgm: bgmEl ? { playing: !bgmEl.paused, t: +bgmEl.currentTime.toFixed(2), gain: bgmGain ? +bgmGain.gain.value.toFixed(3) : null } : null, samples: Object.keys(bufs).map((k) => k + '@' + bufs[k].peak.toFixed(2) + 's') }),
       ctx: ac,
       duck,
@@ -457,29 +462,75 @@
   // ---------- 6 终点站 ----------
   MODULES.letter = {
     init() {
-      const S = C.song;
-      if (S && (S.title || S.file)) {
+      const S = C.song || {};
+      const tracks = (S.tracks || (S.title ? [{ title: S.title, artist: S.artist, file: S.file, links: S.links }] : [])).filter((t) => t.title || t.file);
+      if (tracks.length) {
+        let cur = 0;
+        const btn = $('#songPlay'), nextBtn = $('#songNext'), list = $('#songList');
         $('#song').hidden = false;
         $('#songLabel').textContent = fill(S.label);
-        $('#songTitle').textContent = fill(S.title);
-        $('#songArtist').textContent = fill(S.artist);
         $('#songTip').textContent = fill(S.tip);
-        const links = $('#songLinks');
-        (S.links || []).forEach((l, i) => {
-          if (i === 0) links.append(fill(S.elsewhere));
-          const a = document.createElement('a');
-          a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = fill(l.name);
-          links.append(a);
+        nextBtn.textContent = '⏭ ' + fill(S.next);
+        nextBtn.hidden = tracks.length < 2;
+        tracks.forEach((t, i) => {
+          const li = document.createElement('li');
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.innerHTML = '<span></span><b></b><i></i>';
+          b.querySelector('span').textContent = (i + 1) + '.';
+          b.querySelector('b').textContent = fill(t.title);
+          b.querySelector('i').textContent = fill(t.artist);
+          b.setAttribute('aria-label', (i + 1) + '. ' + fill(t.title) + ' - ' + fill(t.artist));
+          b.addEventListener('click', () => { cur = i; render(); if (t.file) sound.songPlay(t.file); });
+          li.appendChild(b);
+          list.appendChild(li);
         });
-        const btn = $('#songPlay');
-        if (!S.file) { btn.hidden = true; $('#songBarWrap').hidden = true; }
-        btn.textContent = '▶ ' + fill(S.play);
-        btn.addEventListener('click', () => sound.songToggle(S.file));
-        sound.onSong(({ playing, t, d }) => {
-          btn.textContent = (playing ? '❚❚ ' + fill(S.pause) : '▶ ' + fill(S.play));
-          $('#song').classList.toggle('is-playing', playing);
+        list.hidden = tracks.length < 2;
+        const render = () => {
+          const t = tracks[cur];
+          $('#songTitle').textContent = fill(t.title);
+          $('#songArtist').textContent = fill(t.artist);
+          $$('li', list).forEach((li, i) => li.classList.toggle('is-current', i === cur));
+          btn.hidden = !t.file;
+          $('#songBarWrap').hidden = !t.file;
+          const links = $('#songLinks');
+          links.textContent = '';
+          (t.links || []).forEach((l, i) => {
+            if (i === 0) links.append(fill(S.elsewhere));
+            const a = document.createElement('a');
+            a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = fill(l.name);
+            links.append(a);
+          });
+          paintBtn();
+        };
+        const paintBtn = () => {
+          const on = sound.songPlaying(tracks[cur].file);
+          btn.textContent = on ? '❚❚ ' + fill(S.pause) : '▶ ' + fill(S.play);
+          $('#song').classList.toggle('is-playing', on);
+        };
+        btn.addEventListener('click', () => {
+          const t = tracks[cur];
+          if (sound.songPlaying(t.file)) sound.songPause(); else sound.songPlay(t.file);
+        });
+        nextBtn.addEventListener('click', () => {
+          const was = sound.songPlaying();
+          cur = (cur + 1) % tracks.length;
+          render();
+          if (was && tracks[cur].file) sound.songPlay(tracks[cur].file); else if (was) sound.songPause();
+        });
+        $('#songBarWrap').addEventListener('click', (e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          sound.songSeek((e.clientX - r.left) / r.width);
+        });
+        sound.onSongEnd(() => {
+          if (cur < tracks.length - 1 && tracks[cur + 1].file) { cur++; render(); sound.songPlay(tracks[cur].file); return true; }
+          cur = 0; render(); return false;
+        });
+        sound.onSong(({ t, d }) => {
+          paintBtn();
           $('#songBar').style.width = d ? (Math.round((t / d) * 50) * 2) + '%' : '0';
         });
+        render();
       }
       this.text = fill(C.letter.body);
       $('#letterSign').textContent = '—— ' + fill(C.from) + '\n' + fill(C.letter.dateLine, { year: new Date().getFullYear() });

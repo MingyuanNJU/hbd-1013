@@ -179,20 +179,29 @@ window.CONTENT = {
 往后的每一站，我都想和你一起坐。`,
   },
 
-  // ---------- 我们的歌（终点站，信的上方） ----------
+  // ---------- 我们的歌（终点站，信的上方）：按顺序播放，放完一首自动接下一首 ----------
   song: {
     label: '我们的歌',
-    title: 'Talking to the Moon',
-    artist: 'Bruno Mars',
-    file: 'assets/audio/our-song.mp3',   // 留空就只显示下面的链接
     tip: '先点播放，再慢慢读这封信',
     play: '播放',
     pause: '暂停',
+    next: '下一首',
     elsewhere: '在 App 里听：',
-    links: [
-      { name: '网易云音乐', url: 'https://music.163.com/song?id=25657283' },
-      { name: 'Apple Music', url: 'https://music.apple.com/album/576670451?i=576670464' },
-      { name: 'Spotify', url: 'https://open.spotify.com/search/Talking%20to%20the%20Moon%20Bruno%20Mars' },
+    tracks: [
+      { title: 'Die With A Smile', artist: 'Lady Gaga & Bruno Mars',
+        file: 'assets/audio/die-with-a-smile.mp3',        // 留空就只显示链接
+        links: [
+          { name: '网易云音乐', url: 'https://music.163.com/song?id=2617944302' },
+          { name: 'Apple Music', url: 'https://music.apple.com/album/1762656724?i=1762656732' },
+          { name: 'Spotify', url: 'https://open.spotify.com/search/Die%20With%20A%20Smile%20Lady%20Gaga%20Bruno%20Mars' },
+        ] },
+      { title: 'Talking to the Moon', artist: 'Bruno Mars',
+        file: 'assets/audio/talking-to-the-moon.mp3',
+        links: [
+          { name: '网易云音乐', url: 'https://music.163.com/song?id=25657283' },
+          { name: 'Apple Music', url: 'https://music.apple.com/album/576670451?i=576670464' },
+          { name: 'Spotify', url: 'https://open.spotify.com/search/Talking%20to%20the%20Moon%20Bruno%20Mars' },
+        ] },
     ],
   },
 
