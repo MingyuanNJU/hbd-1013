@@ -181,6 +181,17 @@
         <div class="panel px">
           <p class="kicker" data-text="letter.kicker"></p>
           <h2 class="title" data-text="letter.title"></h2>
+          <div class="song" id="song" hidden>
+            <div class="song__disc" aria-hidden="true"></div>
+            <div class="song__info">
+              <p class="song__label" id="songLabel"></p>
+              <p class="song__title"><b id="songTitle"></b><span id="songArtist"></span></p>
+              <p class="song__tip" id="songTip"></p>
+              <div class="song__bar" id="songBarWrap"><i id="songBar"></i></div>
+            </div>
+            <button class="btn song__play" id="songPlay" type="button"></button>
+            <p class="song__links" id="songLinks"></p>
+          </div>
           <article class="letter" id="letter">
             <div class="letter__body" id="letterBody"></div>
             <p class="letter__sign" id="letterSign" hidden></p>

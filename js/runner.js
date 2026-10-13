@@ -5,7 +5,7 @@
   const GROUND = 248;          // 地面顶部
   const GRAV = 1500, JUMP = 560, JUMP2 = 500;
   const CW = 46, CH = 36;      // 小猫碰撞盒
-  const SPEED0 = 170, SPEED1 = 235;
+  const SPEED0 = 190, SPEED1 = 240;
   const PX = 2;                // 每个像素 = 2 世界单位
   const AH = VIEW_H / PX;      // 画布高度（像素）
 
@@ -14,7 +14,7 @@
   // ---------- 关卡（固定设计，保证每张回忆照片都拿得到） ----------
   function buildLevel(nPhotos) {
     const L = { gaps: [], plats: [], fish: [], photos: [], crabs: [], gulls: [], end: 0 };
-    let x = 520, pi = 0;
+    let x = 380, pi = 0;
     const fish = (fx, fy) => L.fish.push({ x: fx, y: fy, got: false });
     const photo = (px, py) => { if (pi < nPhotos) L.photos.push({ x: px, y: py, i: pi++, got: false }); else fish(px, py); };
     const row = (n = 5) => { for (let i = 0; i < n; i++) fish(x + i * 34, GROUND - 22); x += n * 34 + 120; };
@@ -50,9 +50,8 @@
     };
     const gull = (h = 88) => { L.gulls.push({ x: x + 560, y: GROUND - h, vx: 120, go: false }); row(4); };
 
-    row(5); plat(64); crab(); gap(90); high(); arc(); crab(40, 2.6); stairs(); gull();
-    gap(110); plat(80); crab(); arc(); gap(100, true); row(6); gull(92); high();
-    crab(30, 2.4); crab(40, 3); stairs(); arc(); gap(120); gull(); plat(70); row(6);
+    // 约 15 秒：5 段回忆 + 两只螃蟹 + 一道海沟
+    plat(64); crab(); high(); gap(100, true); stairs(); crab(40, 2.6); plat(70); row(4);
     L.end = x + 200;
     return L;
   }
@@ -82,10 +81,11 @@
       const { $, C } = api;
       this.T = C.runner;
       this.items = C.timeline.items;
-      this.nPhotos = Math.min(8, this.items.length);
+      this.photoSrc = (this.T.photos && this.T.photos.length ? this.T.photos : this.items.map((it) => it.img)).slice(0, 8);
+      this.nPhotos = this.photoSrc.length;
       this.goalName = api.fill((C.stations.runner || {}).name || '') || api.fill(this.T.goalSign);
       $('#rnTotal').textContent = this.nPhotos;
-      this.imgs = this.items.slice(0, this.nPhotos).map((it) => { const im = new Image(); im.src = it.img; return im; });
+      this.imgs = this.photoSrc.map((src) => { const im = new Image(); im.src = src; return im; });
       this.cv = $('#rnCanvas');
       this.g = this.cv.getContext('2d');
       this.fx = $('#rnFx');
@@ -308,7 +308,8 @@
 
     toast(i) {
       const { $, fill } = this.api;
-      const it = this.items[i];
+      const src = this.photoSrc[i];
+      const it = this.items.find((x) => x.img === src) || { img: src, place: '' };
       const el = $('#rnToast');
       el.querySelector('img').src = it.img;
       el.querySelector('span').textContent = fill(this.T.photoFound, { place: fill(it.place) || '♥' });

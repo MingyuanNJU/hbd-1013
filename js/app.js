@@ -30,6 +30,7 @@
     const A = () => C.audio || {};
     const num = (v, d) => (typeof v === 'number' ? v : d);
     let ctx = null, master = null, bgmEl = null, bgmGain = null;
+    let songEl = null, hold = false, songCb = null;   // 播放「我们的歌」时暂停背景音乐
     let muted = store.get('muted', false);
     const bufs = {};
     const btn = $('#muteBtn');
@@ -115,14 +116,14 @@
       bgmGain.gain.linearRampToValueAtTime(Math.max(0.0001, to), t + secs);
     }
     function resumeBgm(fade = 0.4) {
-      if (!bgmEl || muted || document.hidden) return;
+      if (!bgmEl || muted || document.hidden || hold) return;
       const p = bgmEl.play();
       if (p && p.catch) p.catch(() => {});
       ramp(bgmVol(), fade);
     }
     // 让背景音乐暂时变小（过场、生日歌时）
     function duck(level, secs) {
-      if (!bgmEl || muted) return;
+      if (!bgmEl || muted || hold) return;
       ramp(bgmVol() * level, 0.3);
       clearTimeout(duck.t);
       duck.t = setTimeout(() => ramp(bgmVol(), 1.2), (secs + 0.3) * 1000);
@@ -131,6 +132,33 @@
       if (!ctx) return;
       master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.05);
       if (bgmEl) { if (muted) bgmEl.pause(); else resumeBgm(); }
+      if (muted && songEl && !songEl.paused) songEl.pause();
+    }
+
+    // ---- 我们的歌 ----
+    function songState() { if (songCb) songCb({ playing: !!songEl && !songEl.paused, t: songEl ? songEl.currentTime : 0, d: songEl ? songEl.duration || 0 : 0 }); }
+    function songToggle(url) {
+      if (!url || !ac()) return;
+      if (!songEl) {
+        songEl = new Audio();
+        songEl.src = url;
+        songEl.preload = 'auto';
+        songEl.setAttribute('playsinline', '');
+        try { ctx.createMediaElementSource(songEl).connect(master); } catch (e) { /* 直接播放 */ }
+        ['play', 'pause', 'timeupdate', 'loadedmetadata'].forEach((ev) => songEl.addEventListener(ev, songState));
+        songEl.addEventListener('ended', () => { hold = false; resumeBgm(1.5); songState(); });
+      }
+      if (songEl.paused) {
+        if (muted) { muted = false; store.set('muted', false); paint(); applyMute(); }
+        hold = true;
+        if (bgmEl) { ramp(0, 0.4); setTimeout(() => { if (hold) bgmEl.pause(); }, 450); }
+        const p = songEl.play();
+        if (p && p.catch) p.catch(() => {});
+      } else {
+        songEl.pause();
+        hold = false;
+        resumeBgm(1.2);
+      }
     }
     // 有录音音效时，页面一打开就先下载、解码好（此时音频还是暂停状态，点击后才出声）
     if (A().train || A().crossing) ac();
@@ -174,6 +202,8 @@
     ];
     return {
       unlock() { const a = ac(); startBgm(); return a; },
+      songToggle,
+      onSong(fn) { songCb = fn; },
       debug: () => ({ ctx: ctx && ctx.state, muted, bgm: bgmEl ? { playing: !bgmEl.paused, t: +bgmEl.currentTime.toFixed(2), gain: bgmGain ? +bgmGain.gain.value.toFixed(3) : null } : null, samples: Object.keys(bufs).map((k) => k + '@' + bufs[k].peak.toFixed(2) + 's') }),
       ctx: ac,
       duck,
@@ -427,6 +457,30 @@
   // ---------- 6 终点站 ----------
   MODULES.letter = {
     init() {
+      const S = C.song;
+      if (S && (S.title || S.file)) {
+        $('#song').hidden = false;
+        $('#songLabel').textContent = fill(S.label);
+        $('#songTitle').textContent = fill(S.title);
+        $('#songArtist').textContent = fill(S.artist);
+        $('#songTip').textContent = fill(S.tip);
+        const links = $('#songLinks');
+        (S.links || []).forEach((l, i) => {
+          if (i === 0) links.append(fill(S.elsewhere));
+          const a = document.createElement('a');
+          a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = fill(l.name);
+          links.append(a);
+        });
+        const btn = $('#songPlay');
+        if (!S.file) { btn.hidden = true; $('#songBarWrap').hidden = true; }
+        btn.textContent = '▶ ' + fill(S.play);
+        btn.addEventListener('click', () => sound.songToggle(S.file));
+        sound.onSong(({ playing, t, d }) => {
+          btn.textContent = (playing ? '❚❚ ' + fill(S.pause) : '▶ ' + fill(S.play));
+          $('#song').classList.toggle('is-playing', playing);
+          $('#songBar').style.width = d ? (Math.round((t / d) * 50) * 2) + '%' : '0';
+        });
+      }
       this.text = fill(C.letter.body);
       $('#letterSign').textContent = '—— ' + fill(C.from) + '\n' + fill(C.letter.dateLine, { year: new Date().getFullYear() });
       $('#letter').addEventListener('click', () => this.finish());

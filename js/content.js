@@ -89,7 +89,9 @@ window.CONTENT = {
   runner: {
     kicker: '第三站 · 小猫闯关',
     title: '小猫赶电车',
-    intro: '帮小猫沿着海边一路跑到车站！路上散落着我们的回忆照片和小鱼干，小心螃蟹、海鸥和海沟～',
+    intro: '帮小猫沿着海边一路跑到车站！路上散落着我们的 5 段回忆和小鱼干，小心螃蟹和海沟～',
+    // 游戏里要收集的 5 张照片（填 assets/photos/ 里的文件名）
+    photos: ['assets/photos/02.jpg', 'assets/photos/03.jpg', 'assets/photos/05.jpg', 'assets/photos/06.jpg', 'assets/photos/07.jpg'],
     controls: '点一下画面（或按空格）跳跃，空中再点一下二段跳。踩螃蟹有奖励！',
     start: '出发！',
     fishLabel: '小鱼干',
@@ -104,8 +106,8 @@ window.CONTENT = {
     again: '再跑一次',
     // 按得分给评语（得分 = 小鱼干 + 回忆 × 5），从高到低匹配
     results: [
-      { min: 80, text: '满分小猫！今天的你无所不能。' },
-      { min: 45, text: '跑得真棒，小猫吃得饱饱的～' },
+      { min: 30, text: '满分小猫！今天的你无所不能。' },
+      { min: 18, text: '跑得真棒，小猫吃得饱饱的～' },
       { min: 0,  text: '小猫平安赶上电车，最重要的是你开心！' },
     ],
   },
@@ -119,7 +121,7 @@ window.CONTENT = {
     scoreLabel: '得分',
     timeLabel: '剩余',
     secondsUnit: '秒',
-    seconds: 30,
+    seconds: 15,
     moleImage: '',                  // 留空 = 你的像素头像 + 猪鼻子猪耳朵；也可以填别的图片路径
     cakeText: '蛋糕 +3',
     hitLines: ['哼哼！', '猪猪知错了', '轻点轻点～', '再也不敢了', '哼唧！', '好痛但值得'],
@@ -127,8 +129,8 @@ window.CONTENT = {
     again: '再打一局',
     // 按分数给评语，从高到低匹配
     results: [
-      { min: 30, text: '打猪冠军！奖励：接下来一周的碗都我洗。' },
-      { min: 15, text: '打得好！今天你说什么都对。' },
+      { min: 14, text: '打猪冠军！奖励：接下来一周的碗都我洗。' },
+      { min: 7, text: '打得好！今天你说什么都对。' },
       { min: 0,  text: '手下留情了呀，看来还是舍不得打我～' },
     ],
   },
@@ -177,10 +179,27 @@ window.CONTENT = {
 往后的每一站，我都想和你一起坐。`,
   },
 
+  // ---------- 我们的歌（终点站，信的上方） ----------
+  song: {
+    label: '我们的歌',
+    title: 'Talking to the Moon',
+    artist: 'Bruno Mars',
+    file: 'assets/audio/our-song.mp3',   // 留空就只显示下面的链接
+    tip: '先点播放，再慢慢读这封信',
+    play: '播放',
+    pause: '暂停',
+    elsewhere: '在 App 里听：',
+    links: [
+      { name: '网易云音乐', url: 'https://music.163.com/song?id=25657283' },
+      { name: 'Apple Music', url: 'https://music.apple.com/album/576670451?i=576670464' },
+      { name: 'Spotify', url: 'https://open.spotify.com/search/Talking%20to%20the%20Moon%20Bruno%20Mars' },
+    ],
+  },
+
   // ---------- 声音 ----------
   // 把音频文件放进 assets/audio/ 文件夹，再把路径填在这里；留空就用网页自己合成的声音。
   audio: {
-    bgm: '',              // 背景音乐（循环播放），例如 'assets/audio/bgm.mp3'
+    bgm: 'assets/audio/bgm.mp3',   // 背景音乐（循环播放）：原创 8-bit 小曲《湘南の午後》
     bgmVolume: 0.35,      // 背景音乐音量 0–1
     train: '',            // 电车驶过的录音，例如 'assets/audio/train.mp3'（会自动对准最响的那一段）
     trainVolume: 0.9,
