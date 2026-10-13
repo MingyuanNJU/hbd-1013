@@ -30,7 +30,7 @@
     let ctx = null;
     let muted = store.get('muted', false);
     const btn = $('#muteBtn');
-    const paint = () => { btn.textContent = muted ? '🔈' : '🔊'; btn.setAttribute('aria-label', muted ? '打开声音' : '关闭声音'); };
+    const paint = () => { btn.classList.toggle('is-muted', muted); btn.setAttribute('aria-label', muted ? '打开声音' : '关闭声音'); };
     paint();
     btn.addEventListener('click', () => { muted = !muted; store.set('muted', muted); paint(); });
 
@@ -112,59 +112,51 @@
     };
   })();
 
-  // ---------- 彩带 ----------
+  // ---------- 像素彩带 ----------
   const confetti = (() => {
     const cv = $('#confetti');
     const g = cv.getContext('2d');
-    const colors = ['#1E6FD9', '#27B0E6', '#8FD0FA', '#FFFFFF', '#FFC94D', '#FF6F91', '#7FE0D0'];
-    let parts = [];
-    let raf = 0;
+    const colors = ['#2F6B4F', '#4A8A69', '#EFE6C9', '#FFFBF0', '#F2C230', '#FFB21E', '#D9473F', '#6DAEE6', '#FF8FA8'];
+    const HEART = ['01010', '11111', '11111', '01110', '00100'];
+    let parts = [], raf = 0, S = 4, W = 0, H = 0;
     function size() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      S = SCENE.scale || 4;
+      W = Math.ceil(innerWidth / S); H = Math.ceil(innerHeight / S);
+      cv.width = W; cv.height = H;
+      cv.style.width = W * S + 'px'; cv.style.height = H * S + 'px';
     }
-    function burst(n = 140, opts = {}) {
+    function burst(n = 120, opts = {}) {
       if (SCENE.reduce) n = Math.round(n / 4);
       size();
-      const x0 = opts.x != null ? opts.x : innerWidth / 2;
-      const y0 = opts.y != null ? opts.y : innerHeight * 0.35;
+      const x0 = (opts.x != null ? opts.x : innerWidth / 2) / S;
+      const y0 = (opts.y != null ? opts.y : innerHeight * 0.35) / S;
       for (let i = 0; i < n; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const v = 4 + Math.random() * 9;
+        const a = Math.random() * Math.PI * 2, v = 0.8 + Math.random() * 2.2;
         parts.push({
-          x: x0, y: y0, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 6,
-          w: 6 + Math.random() * 6, h: 8 + Math.random() * 10,
-          r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
-          c: colors[(Math.random() * colors.length) | 0],
-          heart: opts.hearts && Math.random() < 0.5, life: 0,
+          x: x0, y: y0, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.6,
+          s: Math.random() < 0.7 ? 1 : 2, c: colors[(Math.random() * colors.length) | 0],
+          heart: opts.hearts && Math.random() < 0.25, life: 0, tw: Math.random() * 6,
         });
       }
       if (!raf) raf = requestAnimationFrame(step);
     }
-    function heart(x, y, s, c) {
-      g.fillStyle = c;
-      g.beginPath();
-      g.moveTo(x, y + s * 0.3);
-      g.bezierCurveTo(x, y, x - s / 2, y, x - s / 2, y + s * 0.3);
-      g.bezierCurveTo(x - s / 2, y + s * 0.6, x, y + s * 0.8, x, y + s);
-      g.bezierCurveTo(x, y + s * 0.8, x + s / 2, y + s * 0.6, x + s / 2, y + s * 0.3);
-      g.bezierCurveTo(x + s / 2, y, x, y, x, y + s * 0.3);
-      g.fill();
-    }
     function step() {
-      g.clearRect(0, 0, cv.width, cv.height);
-      parts = parts.filter((p) => p.y < innerHeight + 40 && p.life < 600);
+      g.clearRect(0, 0, W, H);
+      parts = parts.filter((p) => p.y < H + 6 && p.life < 420);
       parts.forEach((p) => {
-        p.life++; p.vy += 0.22; p.vx *= 0.985; p.vy *= 0.985;
-        p.x += p.vx + Math.sin(p.life / 12) * 0.6; p.y += p.vy; p.r += p.vr;
-        if (p.heart) { heart(p.x, p.y, p.w * 1.6, p.c === '#FFFFFF' ? '#FF6F91' : p.c); return; }
-        g.save(); g.translate(p.x, p.y); g.rotate(p.r);
-        g.fillStyle = p.c; g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.life / 8)));
-        g.restore();
+        p.life++; p.vy += 0.045; p.vx *= 0.985; p.vy *= 0.99;
+        p.x += p.vx + Math.sin(p.life / 10 + p.tw) * 0.12; p.y += p.vy;
+        const x = Math.round(p.x), y = Math.round(p.y);
+        if (p.heart) {
+          g.fillStyle = '#D9473F';
+          HEART.forEach((row, j) => { for (let i = 0; i < 5; i++) if (row[i] === '1') g.fillRect(x + i, y + j, 1, 1); });
+          return;
+        }
+        if (Math.floor(p.life / 6 + p.tw) % 3 === 0) return; // 闪烁
+        g.fillStyle = p.c; g.fillRect(x, y, p.s, p.s);
       });
       raf = parts.length ? requestAnimationFrame(step) : 0;
-      if (!raf) g.clearRect(0, 0, cv.width, cv.height);
+      if (!raf) g.clearRect(0, 0, W, H);
     }
     return { burst };
   })();
@@ -235,6 +227,7 @@
     store.set('reached', reached);
     store.set('current', i);
     $('#line').hidden = i === 0;
+    document.body.classList.toggle('has-line', i !== 0);
     paintLine();
     window.scrollTo(0, 0);
     const sec = sections[i];
@@ -249,17 +242,28 @@
     if (i === current || busy) return;
     if (current < 0 || opts.instant) { show(i); return; }
     busy = true;
-    sound.crossing(4);
-    setTimeout(() => {
-      sound.rumble(1.5);
-      SCENE.pass(() => show(i)).then(() => { busy = false; });
-    }, 280);
+    document.body.classList.add('is-passing');
+    led(i);
+    sound.crossing(9);
+    SCENE.pass(() => show(i), { onStart: () => sound.rumble(2.0) }).then(() => {
+      document.body.classList.remove('is-passing');
+      $('#led').hidden = true;
+      busy = false;
+    });
   }
 
   $$('.next').forEach((b) => b.addEventListener('click', () => go(current + 1)));
+  document.body.classList.toggle('is-dark', SCENE.isDark());
 
-  SCENE.prepare(fill(C.common.trainSign), fill(C.common.trainDest));
-  SCENE.ambient(fill(C.common.trainSign), fill(C.common.trainDest));
+  // 报站 LED：生日快乐号 · 開往 永遠 / 次は 江ノ島
+  function led(i) {
+    const st = C.stations[names[i]] || {};
+    $('#ledSub').textContent = [fill(C.common.trainSign), fill(C.common.trainDest)].filter(Boolean).join(' · ');
+    $('#ledNext').textContent = fill(C.common.nextIs);
+    $('#ledName').textContent = fill(st.name);
+    $('#ledRoman').textContent = fill(st.roman);
+    $('#led').hidden = false;
+  }
 
   // ---------- 0 检票口 ----------
   const norm = (s) => String(s).trim().toLowerCase().replace(/[\s\-_.。、，,/]/g, '');
@@ -273,7 +277,6 @@
     if (ok) {
       $('#gateErr').textContent = '';
       $('#gateInput').blur();
-      $('#crossing').classList.add('is-alert');
       confetti.burst(60, { hearts: true });
       go(1);
     } else {

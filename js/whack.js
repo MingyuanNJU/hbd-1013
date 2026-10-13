@@ -1,22 +1,7 @@
 // 4 · 打小猪（打地鼠玩法）
 (() => {
-  const PIG =
-    '<svg viewBox="0 0 100 100" aria-hidden="true">' +
-    '<ellipse cx="21" cy="26" rx="12" ry="15" fill="#F48DA6" transform="rotate(-28 21 26)"/>' +
-    '<ellipse cx="79" cy="26" rx="12" ry="15" fill="#F48DA6" transform="rotate(28 79 26)"/>' +
-    '<ellipse cx="21" cy="28" rx="6" ry="8" fill="#E36E8C" transform="rotate(-28 21 28)"/>' +
-    '<ellipse cx="79" cy="28" rx="6" ry="8" fill="#E36E8C" transform="rotate(28 79 28)"/>' +
-    '<circle cx="50" cy="58" r="38" fill="#FFC2D1"/>' +
-    '<ellipse cx="50" cy="40" rx="20" ry="10" fill="#FFD6E0" opacity=".7"/>' +
-    '<g class="pig__eyes"><circle cx="35" cy="50" r="5.2" fill="#3A2530"/><circle cx="65" cy="50" r="5.2" fill="#3A2530"/>' +
-    '<circle cx="36.8" cy="48.2" r="1.8" fill="#fff"/><circle cx="66.8" cy="48.2" r="1.8" fill="#fff"/></g>' +
-    '<g class="pig__ouch" stroke="#3A2530" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none">' +
-    '<path d="M29 45 L39 50 L29 55"/><path d="M71 45 L61 50 L71 55"/></g>' +
-    '<circle cx="25" cy="66" r="6.5" fill="#FF8DA8" opacity=".55"/><circle cx="75" cy="66" r="6.5" fill="#FF8DA8" opacity=".55"/>' +
-    '<ellipse cx="50" cy="68" rx="15" ry="11" fill="#F48DA6"/>' +
-    '<ellipse cx="44.5" cy="68" rx="3" ry="4.6" fill="#B04F69"/><ellipse cx="55.5" cy="68" rx="3" ry="4.6" fill="#B04F69"/>' +
-    '<path d="M44 84 Q50 88 56 84" stroke="#B04F69" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
-    '</svg>';
+  // 默认：你的像素头像 + 猪鼻子猪耳朵（assets/img/pig.png，被打中换 pig-hit.png）
+  const PIG = 'assets/img/pig.png', PIG_HIT = 'assets/img/pig-hit.png', CAKE = 'assets/img/cake.png';
 
   (window.HBD_MODULES = window.HBD_MODULES || {}).whack = {
     init(api) {
@@ -25,14 +10,16 @@
       this.cfg = C.whack;
       this.seconds = Math.max(10, C.whack.seconds | 0 || 30);
       $('#whTime').textContent = this.seconds;
-      const face = C.whack.moleImage ? '<img alt="" draggable="false">' : PIG;
+      const face = C.whack.moleImage || PIG, faceHit = C.whack.moleImage || PIG_HIT;
       const grid = $('#whack');
       this.holes = [];
       for (let i = 0; i < 9; i++) {
         const h = document.createElement('div');
         h.className = 'hole';
-        h.innerHTML = '<div class="pit"><button type="button" class="mole" tabindex="-1" aria-label="打它">' + face + '<span class="cake">🎂</span></button></div>';
-        if (C.whack.moleImage) h.querySelector('img').src = C.whack.moleImage;
+        h.innerHTML = '<div class="hole__back"></div><div class="hole__clip"><button type="button" class="mole" tabindex="-1" aria-label="打它">' +
+          '<img class="pig" alt="" draggable="false"><img class="pig--hit" alt="" draggable="false"><img class="cake-img" alt="" draggable="false"></button></div><div class="hole__front"></div>';
+        const [a, b, c] = h.querySelectorAll('img');
+        a.src = face; b.src = faceHit; c.src = CAKE;
         h.querySelector('.mole').addEventListener('pointerdown', (e) => { e.preventDefault(); this.hit(h); });
         grid.appendChild(h);
         this.holes.push(h);

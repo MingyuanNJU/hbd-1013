@@ -25,8 +25,9 @@ window.CONTENT = {
     pageTitle: '生日快乐，{name}',
     next: '开往下一站 →',
     nextToEnd: '开往终点站 →',
-    trainSign: '生日快乐号',        // 电车车身上的行先牌
-    trainDest: '開往 永遠',         // 行先牌右半边
+    trainSign: '生日快乐号',        // 换站时报站 LED 第一行（左）
+    trainDest: '開往 永遠',         // 报站 LED 第一行（右）
+    nextIs: '次は',                 // 报站 LED：次は 江ノ島（下一站）
   },
 
   // ---------- 0 · 检票口（踏切） ----------
@@ -50,14 +51,14 @@ window.CONTENT = {
     kicker: '第一站 · 许愿',
     candles: 5,                     // 蜡烛数（建议 3–9）
     prompt: '先许个愿，再把蜡烛吹灭吧',
-    micButton: '🎤 对着麦克风吹',
+    micButton: '对着麦克风吹',
     micListening: '正在听…用力吹！',
     micTip: '也可以直接点蜡烛把它吹灭',
     micUnsupported: '这个浏览器用不了麦克风，直接点蜡烛就好～',
     micDenied: '没拿到麦克风权限，直接点蜡烛把它吹灭吧～',
     afterPrompt: '愿望一定会实现的！',
-    title: '生日快乐，{name}！',
-    sub: '今天是属于你的日子。电车马上沿着海岸线开动，带你回看我们一起走过的地方。',
+    title: '生日快乐，王哇塞！！！',
+    sub: '今天是哇塞姐姐的破壳日！电车马上沿着海岸线开动，带你回看我们一起走过的地方～',
   },
 
   // ---------- 2 · 甜蜜点滴（时间线，也是小猫闯关里要收集的回忆） ----------
@@ -119,7 +120,7 @@ window.CONTENT = {
     timeLabel: '剩余',
     secondsUnit: '秒',
     seconds: 30,
-    moleImage: '',                  // 留空 = 卡通小猪；填 'assets/img/mole.jpg' 就换回大头照
+    moleImage: '',                  // 留空 = 你的像素头像 + 猪鼻子猪耳朵；也可以填别的图片路径
     cakeText: '蛋糕 +3',
     hitLines: ['哼哼！', '猪猪知错了', '轻点轻点～', '再也不敢了', '哼唧！', '好痛但值得'],
     finalLabel: '得分',
@@ -137,7 +138,7 @@ window.CONTENT = {
     kicker: '第五站 · 照片墙',
     title: '我们的照片墙',
     intro: '这里会一直留着。你也可以把喜欢的照片贴上来，配一句话，我这边也能看到。',
-    addButton: '📷 贴一张照片',
+    addButton: '贴一张照片',
     modalTitle: '贴到照片墙',
     captionLabel: '写一句话（可选）',
     captionPlaceholder: '比如：这张是我最喜欢的',
@@ -158,7 +159,7 @@ window.CONTENT = {
     title: '写给你的信',
     skipTip: '（点一下信纸可以直接看完）',
     toWall: '去照片墙',
-    again: '🚃 再坐一次',
+    again: '再坐一次',
     dateLine: '{year} 年 10 月 13 日',
     body: `亲爱的{name}：
 
