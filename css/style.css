@@ -437,3 +437,27 @@ body:not(.has-line) .led { top: calc(env(safe-area-inset-top) + 24px); }
   .song__ctrl { grid-column: 1 / -1; flex-direction: row; }
   .song__list i { display: none; }
 }
+
+/* ============ 打小猪：玩具锤 + 啪的一下 ============ */
+.whack { position: relative; }
+@media (hover: hover) and (pointer: fine) { .whack, .whack * { cursor: none !important; } }
+.hammer {
+  position: absolute; left: -999px; top: 0; z-index: 5; width: 96px; height: 64px; pointer-events: none;
+  margin: -60px 0 0 -22px;              /* 锤头的敲击面对准点击处 */
+  transform-origin: 96% 50%;            /* 绕手柄末端转 */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 16' shape-rendering='crispEdges'%3E%3Crect x='10' y='6' width='13' height='4' fill='%233A1E1E'/%3E%3Crect x='10' y='7' width='12' height='2' fill='%23FFD23F'/%3E%3Crect x='13' y='7' width='1' height='2' fill='%23E8443A'/%3E%3Crect x='17' y='7' width='1' height='2' fill='%23E8443A'/%3E%3Crect x='21' y='7' width='1' height='2' fill='%23E8443A'/%3E%3Crect x='1' y='1' width='9' height='14' fill='%233A1E1E'/%3E%3Crect x='2' y='4' width='7' height='8' fill='%23E8443A'/%3E%3Crect x='2' y='2' width='7' height='2' fill='%23FFD23F'/%3E%3Crect x='2' y='12' width='7' height='2' fill='%23FFD23F'/%3E%3Crect x='3' y='5' width='1' height='5' fill='%23FF9A90'/%3E%3Crect x='3' y='2' width='4' height='1' fill='%23FFF1A8'/%3E%3Crect x='3' y='12' width='4' height='1' fill='%23FFF1A8'/%3E%3C/svg%3E") center / contain no-repeat; image-rendering: pixelated;
+  opacity: 0; transform: rotate(25deg);
+  filter: drop-shadow(3px 3px 0 rgba(14, 34, 44, .3));
+}
+.hammer.is-hover { opacity: 1; }
+.hammer.is-swing { opacity: 1; animation: swing .34s steps(5) forwards; }
+@keyframes swing { 0% { transform: rotate(65deg); } 45% { transform: rotate(-8deg); } 70% { transform: rotate(4deg); } 100% { transform: rotate(22deg); } }
+.pow {
+  position: absolute; z-index: 4; width: 6px; height: 6px; margin: -3px 0 0 -3px; pointer-events: none; background: #FFF6C2;
+  box-shadow: 0 -16px 0 #FFD23F, 0 16px 0 #FFD23F, -16px 0 0 #FFD23F, 16px 0 0 #FFD23F,
+              -12px -12px 0 #FF8A3D, 12px -12px 0 #FF8A3D, -12px 12px 0 #FF8A3D, 12px 12px 0 #FF8A3D;
+  animation: pow .4s steps(4) forwards;
+}
+@keyframes pow { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+.hole.is-bonk .hole__front, .hole.is-bonk .hole__back { animation: bonk .26s steps(3); }
+@keyframes bonk { 33% { transform: translateY(3px); } 66% { transform: translateY(-2px); } }

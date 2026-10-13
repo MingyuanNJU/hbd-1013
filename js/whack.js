@@ -24,6 +24,30 @@
         grid.appendChild(h);
         this.holes.push(h);
       }
+      // 玩具锤：电脑上跟着鼠标，手机上点哪儿砸哪儿
+      const hammer = document.createElement('div');
+      hammer.className = 'hammer';
+      hammer.setAttribute('aria-hidden', 'true');
+      grid.appendChild(hammer);
+      const place = (e) => {
+        const r = grid.getBoundingClientRect();
+        hammer.style.left = Math.round(e.clientX - r.left) + 'px';
+        hammer.style.top = Math.round(e.clientY - r.top) + 'px';
+      };
+      grid.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') { place(e); hammer.classList.add('is-hover'); } });
+      grid.addEventListener('pointerleave', () => hammer.classList.remove('is-hover'));
+      grid.addEventListener('pointerdown', (e) => {
+        place(e);
+        hammer.classList.remove('is-swing'); void hammer.offsetWidth; hammer.classList.add('is-swing');
+        clearTimeout(this.hamT);
+        this.hamT = setTimeout(() => hammer.classList.remove('is-swing'), 420);
+        const pow = document.createElement('i');
+        pow.className = 'pow';
+        pow.style.left = hammer.style.left; pow.style.top = hammer.style.top;
+        grid.appendChild(pow);
+        setTimeout(() => pow.remove(), 450);
+        this.api.sound.whoosh();
+      });
       $('#whStart').addEventListener('click', () => this.start());
       $('#whAgain').addEventListener('click', () => { $('#whDone').hidden = true; this.start(); });
     },
@@ -71,7 +95,8 @@
       const cake = h.dataset.type === 'cake';
       this.score += cake ? 3 : 1;
       this.api.$('#whScore').textContent = this.score;
-      h.classList.add('is-hit');
+      h.classList.add('is-hit', 'is-bonk');
+      setTimeout(() => h.classList.remove('is-bonk'), 300);
       clearTimeout(h._down);
       setTimeout(() => h.classList.remove('is-up', 'is-hit'), 260);
       const lines = this.cfg.hitLines;
@@ -80,7 +105,7 @@
       f.textContent = this.api.fill(cake ? this.cfg.cakeText : lines[(Math.random() * lines.length) | 0]);
       h.appendChild(f);
       setTimeout(() => f.remove(), 800);
-      this.api.sound.blip(cake ? 84 : 64 + ((Math.random() * 8) | 0), 0.12);
+      this.api.sound.squeak(cake);
     },
 
     stop(finished) {
